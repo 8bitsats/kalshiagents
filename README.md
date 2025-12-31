@@ -94,8 +94,12 @@ This repo is inteded for use with Python 3.9
 
    ```
    POLYGON_WALLET_PRIVATE_KEY=""
-   OPENAI_API_KEY=""
+   XAI_API_KEY=""
+   GROK_MODEL="grok-4-1-fast"
    ```
+   
+   Note: `XAI_API_KEY` is required for Grok integration. Get your API key from [xAI Console](https://console.x.ai).
+   `GROK_MODEL` defaults to `grok-4-1-fast` if not specified.
 
 6. Load your wallet with USDC.
 

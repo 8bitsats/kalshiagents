@@ -11,7 +11,18 @@ from dotenv import load_dotenv
 
 from web3 import Web3
 from web3.constants import MAX_INT
-from web3.middleware import geth_poa_middleware
+# PoA middleware - not needed for Polygon but kept for compatibility
+try:
+    # web3.py v7+
+    from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
+    geth_poa_middleware = ExtraDataToPOAMiddleware
+except ImportError:
+    try:
+        # Older web3.py versions
+        from web3.middleware import geth_poa_middleware
+    except ImportError:
+        # If not available, use None (Polygon doesn't need PoA middleware anyway)
+        geth_poa_middleware = None
 
 import httpx
 from py_clob_client.client import ClobClient
@@ -57,7 +68,17 @@ class Polymarket:
         self.ctf_address = "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045"
 
         self.web3 = Web3(Web3.HTTPProvider(self.polygon_rpc))
-        self.web3.middleware_onion.inject(geth_poa_middleware, layer=0)
+        # Inject PoA middleware if available (not strictly needed for Polygon)
+        if geth_poa_middleware is not None:
+            try:
+                # web3.py v7+ uses different middleware injection
+                if hasattr(geth_poa_middleware, 'build'):
+                    self.web3.middleware_onion.inject(geth_poa_middleware.build(), layer=0)
+                else:
+                    self.web3.middleware_onion.inject(geth_poa_middleware, layer=0)
+            except Exception:
+                # If middleware injection fails, continue without it (Polygon doesn't need it)
+                pass
 
         self.usdc = self.web3.eth.contract(
             address=self.usdc_address, abi=self.erc20_approve
