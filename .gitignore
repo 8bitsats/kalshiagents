@@ -16,7 +16,7 @@ build/
 .coverage
 coverage.xml
 htmlcov
-
+.env
 # Environment variables and secrets
 .env
 .env.*
