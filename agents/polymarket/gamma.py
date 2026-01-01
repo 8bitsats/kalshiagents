@@ -1,8 +1,14 @@
 import httpx
 import json
+import sys
+import time
 
 from agents.polymarket.polymarket import Polymarket
 from agents.utils.objects import Market, PolymarketEvent, ClobReward, Tag
+
+# Temporary workaround for Python 3.14 recursion issues
+if sys.version_info >= (3, 14):
+    sys.setrecursionlimit(5000)
 
 
 class GammaMarketClient:
@@ -76,7 +82,15 @@ class GammaMarketClient:
                 'Cannot use "parse_pydantic" and "local_file" params simultaneously.'
             )
 
-        response = httpx.get(self.gamma_markets_endpoint, params=querystring_params)
+        try:
+            # Use explicit client with timeout to avoid Python 3.14 recursion issues
+            with httpx.Client(timeout=30.0) as client:
+                response = client.get(self.gamma_markets_endpoint, params=querystring_params)
+        except RecursionError as e:
+            print(f"RecursionError: Python 3.14 compatibility issue with httpx. Error: {e}")
+            print("RECOMMENDATION: Use Python 3.11 or 3.12 instead of Python 3.14")
+            raise Exception("Python 3.14 incompatibility with httpx. Please use Python 3.11 or 3.12.")
+        
         if response.status_code == 200:
             data = response.json()
             if local_file_path is not None:
@@ -101,7 +115,15 @@ class GammaMarketClient:
                 'Cannot use "parse_pydantic" and "local_file" params simultaneously.'
             )
 
-        response = httpx.get(self.gamma_events_endpoint, params=querystring_params)
+        try:
+            # Use explicit client with timeout to avoid Python 3.14 recursion issues
+            with httpx.Client(timeout=30.0) as client:
+                response = client.get(self.gamma_events_endpoint, params=querystring_params)
+        except RecursionError as e:
+            print(f"RecursionError: Python 3.14 compatibility issue with httpx. Error: {e}")
+            print("RECOMMENDATION: Use Python 3.11 or 3.12 instead of Python 3.14")
+            raise Exception("Python 3.14 incompatibility with httpx. Please use Python 3.11 or 3.12.")
+        
         if response.status_code == 200:
             data = response.json()
             if local_file_path is not None:
@@ -177,8 +199,15 @@ class GammaMarketClient:
     def get_market(self, market_id: int) -> dict():
         url = self.gamma_markets_endpoint + "/" + str(market_id)
         print(url)
-        response = httpx.get(url)
-        return response.json()
+        try:
+            # Use explicit client with timeout to avoid Python 3.14 recursion issues
+            with httpx.Client(timeout=30.0) as client:
+                response = client.get(url)
+                return response.json()
+        except RecursionError as e:
+            print(f"RecursionError: Python 3.14 compatibility issue with httpx. Error: {e}")
+            print("RECOMMENDATION: Use Python 3.11 or 3.12 instead of Python 3.14")
+            raise Exception("Python 3.14 incompatibility with httpx. Please use Python 3.11 or 3.12.")
 
 
 if __name__ == "__main__":

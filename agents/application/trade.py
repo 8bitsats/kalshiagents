@@ -24,7 +24,7 @@ class Trader:
         except:
             pass
 
-    def one_best_trade(self) -> None:
+    def one_best_trade(self, max_retries: int = 3, retry_count: int = 0) -> None:
         """
 
         one_best_trade is a strategy that evaluates all events, markets, and orderbooks
@@ -34,22 +34,42 @@ class Trader:
         then executes that trade without any human intervention
 
         """
+        if retry_count >= max_retries:
+            print(f"Max retries ({max_retries}) reached. Stopping.")
+            return
+
         try:
             self.pre_trade_logic()
 
             events = self.polymarket.get_all_tradeable_events()
             print(f"1. FOUND {len(events)} EVENTS")
 
+            if len(events) == 0:
+                print("No events found. This might indicate an API issue or no active markets.")
+                return
+
             filtered_events = self.agent.filter_events_with_rag(events)
             print(f"2. FILTERED {len(filtered_events)} EVENTS")
+
+            if len(filtered_events) == 0:
+                print("No events passed filtering. Stopping.")
+                return
 
             markets = self.agent.map_filtered_events_to_markets(filtered_events)
             print()
             print(f"3. FOUND {len(markets)} MARKETS")
 
+            if len(markets) == 0:
+                print("No markets found. Stopping.")
+                return
+
             print()
             filtered_markets = self.agent.filter_markets(markets)
             print(f"4. FILTERED {len(filtered_markets)} MARKETS")
+
+            if len(filtered_markets) == 0:
+                print("No markets passed filtering. Stopping.")
+                return
 
             market = filtered_markets[0]
             best_trade = self.agent.source_best_trade(market)
@@ -61,8 +81,11 @@ class Trader:
             # print(f"6. TRADED {trade}")
 
         except Exception as e:
-            print(f"Error {e} \n \n Retrying")
-            self.one_best_trade()
+            print(f"Error: {e}")
+            print(f"Retry {retry_count + 1}/{max_retries}")
+            import traceback
+            traceback.print_exc()
+            self.one_best_trade(max_retries=max_retries, retry_count=retry_count + 1)
 
     def maintain_positions(self):
         pass

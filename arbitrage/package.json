@@ -1,0 +1,38 @@
+{
+  "name": "@solbridge/arbitrage-client",
+  "version": "1.0.0",
+  "description": "Unified TypeScript client for cross-chain arbitrage: Kalshi, Polymarket, Solana",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@polymarket/clob-client": "^5.1.1",
+    "@solana/web3.js": "^1.95.2",
+    "@solana/wallet-adapter-base": "^0.9.23",
+    "ethers": "^6.13.4",
+    "kalshi-typescript": "^1.0.0",
+    "bs58": "^6.0.0",
+    "tweetnacl": "^1.0.3",
+    "axios": "^1.7.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "arbitrage",
+    "kalshi",
+    "polymarket",
+    "solana",
+    "trading",
+    "prediction-markets"
+  ],
+  "author": "SolBridge Team",
+  "license": "MIT"
+}
+

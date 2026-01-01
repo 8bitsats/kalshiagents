@@ -2,12 +2,20 @@
 # https://github.com/Polymarket/py-clob-client/tree/main/examples
 
 import os
+import sys
 import pdb
 import time
 import ast
 import requests
 
 from dotenv import load_dotenv
+
+# Temporary workaround for Python 3.14 recursion issues
+# NOTE: This is a band-aid - the real fix is to use Python 3.11 or 3.12
+if sys.version_info >= (3, 14):
+    sys.setrecursionlimit(5000)
+    print("WARNING: Python 3.14 detected. Increased recursion limit as workaround.")
+    print("RECOMMENDATION: Switch to Python 3.11 or 3.12 for stability.")
 
 from web3 import Web3
 from web3.constants import MAX_INT
@@ -209,15 +217,27 @@ class Polymarket:
 
     def get_all_markets(self) -> "list[SimpleMarket]":
         markets = []
-        res = httpx.get(self.gamma_markets_endpoint)
-        if res.status_code == 200:
-            for market in res.json():
-                try:
-                    market_data = self.map_api_to_market(market)
-                    markets.append(SimpleMarket(**market_data))
-                except Exception as e:
-                    print(e)
-                    pass
+        query_params = {
+            "active": "true",
+            "closed": "false",
+            "limit": 100
+        }
+        try:
+            # Use explicit client with timeout to avoid Python 3.14 recursion issues
+            with httpx.Client(timeout=30.0) as client:
+                res = client.get(self.gamma_markets_endpoint, params=query_params)
+                if res.status_code == 200:
+                    for market in res.json():
+                        try:
+                            market_data = self.map_api_to_market(market)
+                            markets.append(SimpleMarket(**market_data))
+                        except Exception as e:
+                            print(e)
+                            pass
+        except RecursionError as e:
+            print(f"RecursionError: Python 3.14 compatibility issue with httpx. Error: {e}")
+            print("RECOMMENDATION: Use Python 3.11 or 3.12 instead of Python 3.14")
+            raise Exception("Python 3.14 incompatibility with httpx. Please use Python 3.11 or 3.12.")
         return markets
 
     def filter_markets_for_trading(self, markets: "list[SimpleMarket]"):
@@ -229,11 +249,18 @@ class Polymarket:
 
     def get_market(self, token_id: str) -> SimpleMarket:
         params = {"clob_token_ids": token_id}
-        res = httpx.get(self.gamma_markets_endpoint, params=params)
-        if res.status_code == 200:
-            data = res.json()
-            market = data[0]
-            return self.map_api_to_market(market, token_id)
+        try:
+            # Use explicit client with timeout to avoid Python 3.14 recursion issues
+            with httpx.Client(timeout=30.0) as client:
+                res = client.get(self.gamma_markets_endpoint, params=params)
+                if res.status_code == 200:
+                    data = res.json()
+                    market = data[0]
+                    return self.map_api_to_market(market, token_id)
+        except RecursionError as e:
+            print(f"RecursionError: Python 3.14 compatibility issue with httpx. Error: {e}")
+            print("RECOMMENDATION: Use Python 3.11 or 3.12 instead of Python 3.14")
+            raise Exception("Python 3.14 incompatibility with httpx. Please use Python 3.11 or 3.12.")
 
     def map_api_to_market(self, market, token_id: str = "") -> SimpleMarket:
         market = {
@@ -256,19 +283,52 @@ class Polymarket:
             market["clob_token_ids"] = token_id
         return market
 
-    def get_all_events(self) -> "list[SimpleEvent]":
+    def get_all_events(self, max_retries: int = 3) -> "list[SimpleEvent]":
+        """
+        Fetch all events from Gamma API with retry logic and query params.
+        Uses loop-based retry instead of recursion to avoid stack overflow.
+        """
         events = []
-        res = httpx.get(self.gamma_events_endpoint)
-        if res.status_code == 200:
-            print(len(res.json()))
-            for event in res.json():
-                try:
-                    print(1)
-                    event_data = self.map_api_to_event(event)
-                    events.append(SimpleEvent(**event_data))
-                except Exception as e:
-                    print(e)
-                    pass
+        query_params = {
+            "active": "true",
+            "closed": "false",
+            "archived": "false",
+            "limit": 100
+        }
+        
+        for attempt in range(max_retries):
+            try:
+                # Use explicit client with timeout to avoid Python 3.14 recursion issues
+                with httpx.Client(timeout=30.0) as client:
+                    res = client.get(self.gamma_events_endpoint, params=query_params)
+                    if res.status_code == 200:
+                        data = res.json()
+                        print(f"Fetched {len(data)} events from API")
+                        for event in data:
+                            try:
+                                event_data = self.map_api_to_event(event)
+                                events.append(SimpleEvent(**event_data))
+                            except Exception as e:
+                                print(f"Error parsing event: {e}")
+                                pass
+                        return events
+                    else:
+                        print(f"API returned status {res.status_code}, attempt {attempt + 1}/{max_retries}")
+                        if attempt < max_retries - 1:
+                            time.sleep(2 ** attempt)  # Exponential backoff
+                            continue
+                        raise Exception(f"API returned status {res.status_code}")
+                        
+            except RecursionError as e:
+                print(f"RecursionError: Python 3.14 compatibility issue with httpx. Error: {e}")
+                print("RECOMMENDATION: Use Python 3.11 or 3.12 instead of Python 3.14")
+                raise Exception("Python 3.14 incompatibility with httpx. Please use Python 3.11 or 3.12.")
+            except Exception as e:
+                print(f"Error fetching events (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                raise
         return events
 
     def map_api_to_event(self, event) -> SimpleEvent:
@@ -303,9 +363,22 @@ class Polymarket:
                 tradeable_events.append(event)
         return tradeable_events
 
-    def get_all_tradeable_events(self) -> "list[SimpleEvent]":
-        all_events = self.get_all_events()
-        return self.filter_events_for_trading(all_events)
+    def get_all_tradeable_events(self, max_retries: int = 3) -> "list[SimpleEvent]":
+        """
+        Get all tradeable events with loop-based retry logic.
+        Replaces recursive retry to avoid stack overflow.
+        """
+        for attempt in range(max_retries):
+            try:
+                all_events = self.get_all_events(max_retries=1)  # Single attempt per call
+                return self.filter_events_for_trading(all_events)
+            except Exception as e:
+                print(f"Error getting tradeable events (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                raise
+        return []
 
     def get_sampling_simplified_markets(self) -> "list[SimpleEvent]":
         markets = []

@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import sys
 
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.document_loaders import JSONLoader
@@ -8,6 +9,10 @@ from langchain_community.vectorstores.chroma import Chroma
 
 from agents.polymarket.gamma import GammaMarketClient
 from agents.utils.objects import SimpleEvent, SimpleMarket
+
+# Temporary workaround for Python 3.14 recursion issues
+if sys.version_info >= (3, 14):
+    sys.setrecursionlimit(5000)
 
 
 class PolymarketRAG:
@@ -19,10 +24,28 @@ class PolymarketRAG:
     def load_json_from_local(
         self, json_file_path=None, vector_db_directory="./local_db"
     ) -> None:
-        loader = JSONLoader(
-            file_path=json_file_path, jq_schema=".[].description", text_content=False
-        )
-        loaded_docs = loader.load()
+        try:
+            loader = JSONLoader(
+                file_path=json_file_path, jq_schema=".[].description", text_content=False
+            )
+            loaded_docs = loader.load()
+        except Exception as e:
+            if "jq" in str(e).lower() or "jq package not found" in str(e):
+                print(f"Warning: jq package not available. Error: {e}")
+                print("Attempting fallback: loading JSON with Python json module...")
+                # Fallback: load JSON manually and create documents
+                with open(json_file_path, 'r') as f:
+                    data = json.load(f)
+                from langchain_core.documents import Document
+                loaded_docs = []
+                for item in data:
+                    if isinstance(item, dict) and "description" in item:
+                        loaded_docs.append(Document(
+                            page_content=item.get("description", ""),
+                            metadata={k: v for k, v in item.items() if k != "description"}
+                        ))
+            else:
+                raise
 
         embedding_function = OpenAIEmbeddings(model="text-embedding-3-small")
         Chroma.from_documents(
@@ -72,14 +95,34 @@ class PolymarketRAG:
 
             return metadata
 
-        loader = JSONLoader(
-            file_path=local_file_path,
-            jq_schema=".[]",
-            content_key="description",
-            text_content=False,
-            metadata_func=metadata_func,
-        )
-        loaded_docs = loader.load()
+        try:
+            loader = JSONLoader(
+                file_path=local_file_path,
+                jq_schema=".[]",
+                content_key="description",
+                text_content=False,
+                metadata_func=metadata_func,
+            )
+            loaded_docs = loader.load()
+        except Exception as e:
+            if "jq" in str(e).lower() or "jq package not found" in str(e):
+                print(f"Warning: jq package not available. Error: {e}")
+                print("Attempting fallback: loading JSON with Python json module...")
+                # Fallback: load JSON manually and create documents
+                with open(local_file_path, 'r') as f:
+                    data = json.load(f)
+                from langchain_core.documents import Document
+                loaded_docs = []
+                for item in data:
+                    if isinstance(item, dict):
+                        content = item.get("description", "")
+                        metadata = metadata_func(item, {})
+                        loaded_docs.append(Document(
+                            page_content=content,
+                            metadata=metadata
+                        ))
+            else:
+                raise
         embedding_function = OpenAIEmbeddings(model="text-embedding-3-small")
         vector_db_directory = f"{local_events_directory}/chroma"
         local_db = Chroma.from_documents(
@@ -109,14 +152,34 @@ class PolymarketRAG:
 
             return metadata
 
-        loader = JSONLoader(
-            file_path=local_file_path,
-            jq_schema=".[]",
-            content_key="description",
-            text_content=False,
-            metadata_func=metadata_func,
-        )
-        loaded_docs = loader.load()
+        try:
+            loader = JSONLoader(
+                file_path=local_file_path,
+                jq_schema=".[]",
+                content_key="description",
+                text_content=False,
+                metadata_func=metadata_func,
+            )
+            loaded_docs = loader.load()
+        except Exception as e:
+            if "jq" in str(e).lower() or "jq package not found" in str(e):
+                print(f"Warning: jq package not available. Error: {e}")
+                print("Attempting fallback: loading JSON with Python json module...")
+                # Fallback: load JSON manually and create documents
+                with open(local_file_path, 'r') as f:
+                    data = json.load(f)
+                from langchain_core.documents import Document
+                loaded_docs = []
+                for item in data:
+                    if isinstance(item, dict):
+                        content = item.get("description", "")
+                        metadata = metadata_func(item, {})
+                        loaded_docs.append(Document(
+                            page_content=content,
+                            metadata=metadata
+                        ))
+            else:
+                raise
         embedding_function = OpenAIEmbeddings(model="text-embedding-3-small")
         vector_db_directory = f"{local_events_directory}/chroma"
         local_db = Chroma.from_documents(

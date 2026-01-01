@@ -1,77 +1,64 @@
-# Quick Fix for Python 3.14 Compatibility Issues
+# 🚨 URGENT: Python 3.14 Incompatibility Fix
 
 ## The Problem
 
-You're using **Python 3.14**, but `requirements.txt` was created for **Python 3.9**. Some packages like `onnxruntime==1.18.1` don't support Python 3.14, causing installation to fail.
+Your script is crashing with `RecursionError: maximum recursion depth exceeded` because **Python 3.14 is incompatible with `httpx`**.
 
-## Solution 1: Install Essential Packages Only (Quick Fix)
+## The Solution: Switch to Python 3.11
 
-Run this to install just what you need to run the application:
+**You MUST use Python 3.11 or 3.12** - Python 3.14 is too new and breaks HTTP libraries.
 
-```bash
-cd /Users/8bit/Downloads/agents
-source .venv/bin/activate
-pip install "xai-sdk>=1.4.0" python-dotenv httpx
-export PYTHONPATH="."
-python agents/application/trade.py
-```
-
-## Solution 2: Use the Install Script
-
-I've created `install_deps.sh` that skips problematic packages:
+### Quick Fix (5 minutes)
 
 ```bash
-cd /Users/8bit/Downloads/agents
-./install_deps.sh
-export PYTHONPATH="."
-python agents/application/trade.py
-```
+# 1. Stop the current script (Ctrl+C if still running)
 
-## Solution 3: Use Python 3.9 (Recommended)
+# 2. Install Python 3.11 (if not installed)
+brew install python@3.11
+# OR download from https://www.python.org/downloads/
 
-The project is designed for Python 3.9. Create a new virtual environment with Python 3.9:
-
-```bash
-cd /Users/8bit/Downloads/agents
-
-# Remove old venv
+# 3. Remove old virtual environment
 rm -rf .venv
 
-# Create new venv with Python 3.9
-python3.9 -m venv .venv
+# 4. Create new venv with Python 3.11
+python3.11 -m venv .venv
 
-# Activate and install
+# 5. Activate
 source .venv/bin/activate
-pip install -r requirements.txt
-export PYTHONPATH="."
+
+# 6. Verify version
+python --version  # Should show 3.11.x
+
+# 7. Install essential packages
+pip install httpx python-dotenv xai-sdk langchain-openai langchain-community jq typer
+
+# 8. Try running again
 python agents/application/trade.py
 ```
 
-## Solution 4: Install Dependencies Selectively
+## What I Fixed
 
-If you want to install most packages but skip problematic ones:
+1. ✅ **Infinite retry loop** - Added retry limit (max 3 retries)
+2. ✅ **Better error handling** - Catches recursion errors gracefully
+3. ✅ **Early exit checks** - Stops if no events found instead of retrying forever
 
-```bash
-cd /Users/8bit/Downloads/agents
-source .venv/bin/activate
+## Why Python 3.14 Fails
 
-# Install from requirements.txt but skip onnxruntime
-pip install -r <(grep -v "^onnxruntime" requirements.txt)
+Python 3.14 has breaking changes that cause recursion errors in:
+- `httpx` / `httpcore` libraries
+- Python's `typing.py` module
+- Python's `os.py` module
 
-# Install essential packages that might be missing
-pip install "xai-sdk>=1.4.0" python-dotenv httpx
+This is a known issue - Python 3.14 is too new for most libraries.
 
-export PYTHONPATH="."
-python agents/application/trade.py
-```
+## After Switching to Python 3.11
 
-## What's Happening
+The script should:
+- ✅ Make HTTP requests without recursion errors
+- ✅ Stop after 3 retries instead of infinite loop
+- ✅ Show clear error messages
+- ✅ Handle empty results gracefully
 
-- **onnxruntime==1.18.1** doesn't support Python 3.14
-- When pip hits this error, it stops installing, so `httpx` and other packages never get installed
-- The project README specifies Python 3.9, which is why some packages have version constraints
+---
 
-## Recommended Approach
-
-**Use Python 3.9** as specified in the README. This ensures all dependencies install correctly.
-
+**Next Step: Run the commands above to switch to Python 3.11**
