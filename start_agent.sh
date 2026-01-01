@@ -23,8 +23,9 @@ else
     exit 1
 fi
 
-# Set PYTHONPATH
-export PYTHONPATH="."
+# Set PYTHONPATH (critical for imports)
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+export PYTHONPATH=".:${PYTHONPATH}"
 
 # Check if .env exists
 if [ ! -f ".env" ]; then
