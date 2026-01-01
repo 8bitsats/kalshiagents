@@ -1,0 +1,8 @@
+src/
+tsconfig.json
+*.md
+node_modules/
+.git/
+.env
+.env.local
+
