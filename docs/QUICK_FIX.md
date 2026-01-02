@@ -1,56 +1,79 @@
-# Quick Fix for Missing Dependencies
+# Quick Fix: ModuleNotFoundError: No module named 'agents'
 
 ## The Problem
-You're encountering missing modules one by one (`dotenv`, `httpx`, etc.). Instead of installing them individually, install all dependencies at once.
 
-## Solution
+You're getting `ModuleNotFoundError: No module named 'agents'` because `PYTHONPATH` is not set.
 
-Run this single command to install all dependencies:
+## Quick Fix
+
+**Always set PYTHONPATH before running the CLI:**
 
 ```bash
 cd /Users/8bit/Downloads/agents
 source .venv/bin/activate
-pip install -r requirements.txt
 export PYTHONPATH="."
-python agents/application/trade.py
+
+# Now run CLI
+python scripts/python/cli.py --help
 ```
 
-## Or Use the Updated Script
+## Or Use the Helper Script
 
-The `run.sh` script has been updated to install all dependencies automatically:
+I've created a helper script that sets everything up automatically:
 
 ```bash
+# Make it executable (one time)
+chmod +x run_cli.sh
+
+# Use it to run any CLI command
+./run_cli.sh --help
+./run_cli.sh get-all-markets --limit 10
+./run_cli.sh run-autonomous-trader
+```
+
+## Add to Your Shell Profile (Permanent Fix)
+
+Add this to your `~/.zshrc` or `~/.bashrc`:
+
+```bash
+# Add to ~/.zshrc
+echo 'export PYTHONPATH="."' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Or create an alias:
+
+```bash
+# Add to ~/.zshrc
+echo 'alias polymarket="cd /Users/8bit/Downloads/agents && source .venv/bin/activate && export PYTHONPATH=\".\" && python scripts/python/cli.py"' >> ~/.zshrc
+source ~/.zshrc
+
+# Then you can just run:
+polymarket --help
+```
+
+## Complete Workflow
+
+```bash
+# 1. Navigate to project
 cd /Users/8bit/Downloads/agents
-./run.sh
-```
 
-## What Changed
-
-The `run.sh` script now:
-1. Installs all packages from `requirements.txt` (which includes `httpx`, `python-dotenv`, and all other dependencies)
-2. Falls back to installing key packages if the full install fails
-3. Sets PYTHONPATH automatically
-4. Runs the application
-
-## If You Still Get Errors
-
-If you continue to get missing module errors after installing from `requirements.txt`, try:
-
-```bash
-# Make sure you're in the virtual environment
+# 2. Activate virtual environment
 source .venv/bin/activate
 
-# Upgrade pip first
-pip install --upgrade pip
-
-# Install all dependencies
-pip install -r requirements.txt
-
-# Verify key packages are installed
-pip list | grep -E "(httpx|python-dotenv|xai-sdk)"
-
-# Run the app
+# 3. Set PYTHONPATH (IMPORTANT!)
 export PYTHONPATH="."
-python agents/application/trade.py
+
+# 4. Check wallet balance
+python check_wallet.py
+
+# 5. Run CLI commands
+python scripts/python/cli.py --help
+python scripts/python/cli.py get-all-markets --limit 10
+python scripts/python/cli.py run-autonomous-trader
 ```
+
+## Why This Happens
+
+Python needs to know where to find the `agents` module. Since it's in the project root, you need to add the current directory (`.`) to `PYTHONPATH` so Python can find it.
 

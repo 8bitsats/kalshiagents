@@ -1,0 +1,11 @@
+{
+  "name": "@packages/types",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/fused.ts",
+  "types": "src/fused.ts",
+  "exports": {
+    "./fused": "./src/fused.ts"
+  }
+}
+

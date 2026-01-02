@@ -5,7 +5,16 @@ These tools enable Grok to interact with Polymarket data and make trading decisi
 
 import json
 from typing import Dict, Any, List
-from xai_sdk.chat import tool
+
+# Optional xai_sdk import
+try:
+    from xai_sdk.chat import tool
+    XAI_SDK_AVAILABLE = True
+except ImportError:
+    XAI_SDK_AVAILABLE = False
+    # Dummy tool function for when xai_sdk is not available
+    def tool(*args, **kwargs):
+        raise ImportError("xai_sdk requires Python 3.10+. Install with: pip install xai-sdk (requires Python 3.10+)")
 
 from agents.polymarket.polymarket import Polymarket
 from agents.polymarket.gamma import GammaMarketClient as Gamma

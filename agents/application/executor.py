@@ -7,10 +7,32 @@ from typing import List, Dict, Any
 import math
 
 from dotenv import load_dotenv
-from xai_sdk import Client
-from xai_sdk.chat import user as xai_user, system as xai_system
-from xai_sdk.chat import tool_result
-from xai_sdk.tools import web_search, x_search, get_tool_call_type
+
+# Optional xai_sdk imports (requires Python 3.10+)
+try:
+    from xai_sdk import Client
+    from xai_sdk.chat import user as xai_user, system as xai_system
+    from xai_sdk.chat import tool_result
+    from xai_sdk.tools import web_search, x_search, get_tool_call_type
+    XAI_SDK_AVAILABLE = True
+except ImportError:
+    XAI_SDK_AVAILABLE = False
+    # Create dummy classes/functions for when xai_sdk is not available
+    class Client:
+        def __init__(self, *args, **kwargs):
+            raise ImportError("xai_sdk requires Python 3.10+. Install with: pip install xai-sdk (requires Python 3.10+)")
+    def xai_user(*args, **kwargs):
+        raise ImportError("xai_sdk requires Python 3.10+")
+    def xai_system(*args, **kwargs):
+        raise ImportError("xai_sdk requires Python 3.10+")
+    def tool_result(*args, **kwargs):
+        raise ImportError("xai_sdk requires Python 3.10+")
+    def web_search(*args, **kwargs):
+        raise ImportError("xai_sdk requires Python 3.10+")
+    def x_search(*args, **kwargs):
+        raise ImportError("xai_sdk requires Python 3.10+")
+    def get_tool_call_type(*args, **kwargs):
+        raise ImportError("xai_sdk requires Python 3.10+")
 
 from agents.polymarket.gamma import GammaMarketClient as Gamma
 from agents.connectors.chroma import PolymarketRAG as Chroma
@@ -42,6 +64,16 @@ class Executor:
         max_token_model = {'grok-4-1-fast': 95000, 'grok-4-fast': 95000, 'grok-4': 95000}
         self.token_limit = max_token_model.get(self.model, 95000)
         self.prompter = Prompter()
+        
+        # Check if xai_sdk is available
+        if not XAI_SDK_AVAILABLE:
+            raise ImportError(
+                "xai_sdk is required but not installed. "
+                "xai_sdk requires Python 3.10+. "
+                "You are using Python 3.9. "
+                "Either upgrade to Python 3.10+ or use features that don't require xai_sdk."
+            )
+        
         self.xai_api_key = os.getenv("XAI_API_KEY")
         if not self.xai_api_key:
             raise ValueError("XAI_API_KEY environment variable is required")

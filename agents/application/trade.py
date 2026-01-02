@@ -9,7 +9,20 @@ class Trader:
     def __init__(self):
         self.polymarket = Polymarket()
         self.gamma = Gamma()
-        self.agent = Agent()
+        try:
+            self.agent = Agent()
+        except ImportError as e:
+            if "xai_sdk" in str(e) or "xai_sdk requires Python 3.10" in str(e):
+                raise ImportError(
+                    "Cannot initialize Agent: xai_sdk requires Python 3.10+, but you're using Python 3.9.\n"
+                    "To use Trader features, you need:\n"
+                    "  1. Upgrade to Python 3.10+\n"
+                    "  2. Install xai-sdk: pip install xai-sdk\n"
+                    "  3. Set XAI_API_KEY in your .env file\n"
+                    "\n"
+                    "Alternatively, use the TypeScript backend (polymarket-arbitrage-agent) which doesn't require xai_sdk."
+                ) from e
+            raise
 
     def pre_trade_logic(self) -> None:
         self.clear_local_dbs()

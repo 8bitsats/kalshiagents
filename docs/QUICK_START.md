@@ -1,145 +1,141 @@
-# Quick Start Guide - Start CLI and Agent
+# Quick Start Guide
 
-## Step 1: Install Dependencies
+## 🚀 Start the Backend
 
-Since you're using Python 3.9, install dependencies without xai-sdk first:
-
-```bash
-# Activate virtual environment
-source .venv/bin/activate
-
-# Install dependencies (without xai-sdk which requires Python 3.10+)
-pip install -r requirements-py39.txt
-
-# Install essential packages for CLI
-pip install typer devtools python-dotenv httpx web3 py_clob_client py_order_utils requests pydantic
-```
-
-**OR** if you want full functionality with xai-sdk:
+### Option 1: Use the Helper Script (Easiest)
 
 ```bash
-# Upgrade to Python 3.10+
-python3.10 -m venv .venv310
-source .venv310/bin/activate
-pip install -r requirements.txt
+cd /Users/8bit/Downloads/agents/polymarket-arbitrage-agent
+./start_backend.sh
 ```
 
-## Step 2: Check Wallet Balance
+### Option 2: Manual Start
 
 ```bash
-# Make sure PYTHONPATH is set
-export PYTHONPATH="."
+# Navigate to backend
+cd /Users/8bit/Downloads/agents/polymarket-arbitrage-agent/apps/backend
 
-# Check wallet balance
-python check_wallet.py
+# Set environment variables (optional - defaults are set)
+export STRATEGY=pair_arbitrage
+export PAIR_ARB_MAX_COST=0.99
+export PAIR_ARB_SHARES=250
+export ENABLE_TERMINAL_UI=true
+
+# Start
+pnpm dev
 ```
 
-This will show:
-- Your wallet address
-- USDC balance
-- MATIC balance (for gas)
+## 📋 Available Strategies
 
-## Step 3: Fund Your Wallet
+### 1. Pair Arbitrage (Default)
+```bash
+export STRATEGY=pair_arbitrage
+export PAIR_ARB_MAX_COST=0.99
+export PAIR_ARB_SHARES=250
+```
 
-If your wallet needs funding:
+### 2. Statistical Arbitrage
+```bash
+export STRATEGY=statistical_arbitrage
+export STAT_ARB_MIN_SPREAD=0.04
+export STAT_ARB_MAX_SPREAD=0.07
+export STAT_ARB_SHARES=200
+```
 
-1. **Get your wallet address** from the balance check
-2. **Send USDC to your wallet** on Polygon network:
-   - Minimum: $10-20 USDC recommended
-   - USDC Contract: `0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`
-   - Network: Polygon (not Ethereum mainnet)
-3. **Send MATIC for gas fees**:
-   - Minimum: 0.1 MATIC recommended
-   - Used for transaction fees
+### 3. Spread Farming
+```bash
+export STRATEGY=spread_farming
+export SPREAD_FARM_MIN_BPS=5
+export SPREAD_FARM_SHARES=100
+```
 
-**Where to get USDC:**
-- Coinbase (withdraw to Polygon)
-- Uniswap (bridge to Polygon)
-- Any DEX on Polygon
-- Centralized exchanges that support Polygon withdrawals
+### 4. AutoCycle Dump Hedge
+```bash
+export STRATEGY=autocycle_dump_hedge
+export ORDER_SIZE_SHARES=20
+export SUM_TARGET=0.95
+```
 
-## Step 4: Start the CLI
+### 5. Open Leg Dislocation Pair
+```bash
+export STRATEGY=open_leg_dislocation_pair
+export OPEN_LEG_SHARES=250
+export OPEN_LEG_TARGET_PAIR_COST=0.95
+```
+
+## 🎯 Terminal UI
+
+The terminal UI is **enabled by default**. It displays:
+- **POSITIONS** - UP/DOWN positions with cost, avg, qty, PnL
+- **MARKET ANALYSIS** - Combined prices, spread, BTC price
+- **ORDER BOOKS** - Live UP/DOWN order books
+- **RECENT TRANSACTIONS** - Last 6 trades
+- **STRATEGY** - Current strategy and decisions
+- **RISK FLAGS** - Active warnings
+
+To disable:
+```bash
+export ENABLE_TERMINAL_UI=false
+```
+
+## 📝 Environment Variables
+
+Create a `.env` file in `polymarket-arbitrage-agent/`:
 
 ```bash
-# Make sure virtual environment is activated
-source .venv/bin/activate  # or source .venv310/bin/activate
+# Required
+POLYMARKET_TOKEN_UP_ID=your_up_token_id
+POLYMARKET_TOKEN_DOWN_ID=your_down_token_id
 
-# Set PYTHONPATH
-export PYTHONPATH="."
+# Strategy (default: pair_arbitrage)
+STRATEGY=pair_arbitrage
+PAIR_ARB_MAX_COST=0.99
+PAIR_ARB_SHARES=250
 
-# Start CLI
-python scripts/python/cli.py --help
+# Terminal UI
+ENABLE_TERMINAL_UI=true
+
+# Optional: Grok AI
+GROK_API_KEY=your_grok_api_key
+GROK_MODEL=grok-4.1
+LIVE_SEARCH=true
 ```
 
-**Available CLI Commands:**
+## 🔧 Troubleshooting
 
+### "No package.json found"
+Make sure you're in the correct directory:
 ```bash
-# Get markets
-python scripts/python/cli.py get-all-markets --limit 10
-
-# Get events
-python scripts/python/cli.py get-all-events --limit 5
-
-# Ask LLM a question
-python scripts/python/cli.py ask-llm "What are the best markets to trade right now?"
-
-# Ask Polymarket-specific question
-python scripts/python/cli.py ask-polymarket-llm "What markets have the best spreads?"
-
-# Run autonomous trader
-python scripts/python/cli.py run-autonomous-trader
+cd /Users/8bit/Downloads/agents/polymarket-arbitrage-agent/apps/backend
 ```
 
-## Step 5: Start the Autonomous Agent
-
+### "Module not found"
+Install dependencies:
 ```bash
-# Option 1: Via CLI
-python scripts/python/cli.py run-autonomous-trader
-
-# Option 2: Direct Python
-python -c "from agents.application.trade import Trader; t = Trader(); t.one_best_trade()"
-
-# Option 3: Using the start script
-./start_agent.sh
+cd /Users/8bit/Downloads/agents/polymarket-arbitrage-agent
+pnpm install
 ```
 
-## Troubleshooting
+### "POLYMARKET_TOKEN_UP_ID required"
+Add token IDs to `.env` file. See `FIND_TOKEN_IDS.md` for instructions.
 
-### Missing Dependencies
-```bash
-pip install typer devtools python-dotenv httpx web3 py_clob_client py_order_utils
-```
+## 📊 What You'll See
 
-### Missing XAI_API_KEY
-If you see errors about XAI_API_KEY:
-- Get your API key from https://console.x.ai
-- Add to `.env`: `XAI_API_KEY=your_key_here`
-- Note: Requires Python 3.10+ for xai-sdk package
+When the backend starts, you'll see:
+1. Server listening on port 3001
+2. WebSocket available at ws://localhost:3001/ws
+3. Strategy name
+4. Mode (AUTONOMOUS/HITL)
+5. Paper Trading status
+6. Recording status
 
-### Low Balance
-- Minimum $10-20 USDC recommended
-- Need MATIC for gas fees (0.1+ MATIC)
+If `ENABLE_TERMINAL_UI=true`, you'll also see the enhanced terminal dashboard updating in real-time!
 
-### Connection Issues
-- Check your internet connection
-- Verify Polygon RPC is accessible
-- Check if Polymarket API is up
+## 🎯 Next Steps
 
-## Environment Variables Required
+1. **Monitor the terminal** - Watch positions, order books, and trades
+2. **Check API** - Visit `http://localhost:3001/state` for JSON state
+3. **View trades** - Visit `http://localhost:3001/trades` for recent fills
+4. **Chat with Grok** - POST to `/agent/chat` for AI assistance
 
-Make sure your `.env` file has:
-
-```bash
-POLYGON_WALLET_PRIVATE_KEY=your_private_key_here
-XAI_API_KEY=your_xai_api_key_here  # Optional if not using Grok
-GROK_MODEL=grok-4-1-fast  # Optional, defaults to this
-```
-
-## Next Steps
-
-1. ✅ Install dependencies
-2. ✅ Check wallet balance
-3. ✅ Fund wallet if needed
-4. ✅ Start CLI or agent
-5. 🚀 Start trading!
-
+See `TRADING_MODES.md` for detailed strategy documentation.
